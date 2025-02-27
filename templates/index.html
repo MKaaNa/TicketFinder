@@ -22,8 +22,30 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        #flightResults {
+        table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        button.buy-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button.buy-btn:hover {
+            background-color: #218838;
         }
     </style>
 </head>
