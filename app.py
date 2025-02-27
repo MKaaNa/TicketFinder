@@ -2,7 +2,7 @@ from flask import Flask, jsonify, render_template, request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import logging
-from scraper_playwright import get_flights_enuygun_playwright, get_flights_obilet_playwright, \
+from scraper import get_flights_enuygun_playwright, get_flights_obilet_playwright, \
     get_flights_turna_playwright
 
 logging.basicConfig(level=logging.INFO)

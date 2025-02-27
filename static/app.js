@@ -12,11 +12,11 @@ document.getElementById("fetchFlights").addEventListener("click", async function
             return;
         }
         let enuygunFlights = data.filter(flight => flight.kaynak === "Enuygun")
-            .map(flight => `<li>${flight.havayolu} - ${flight.fiyat} - ${flight.kalkış_saati}</li>`).join("");
+            .map(flight => `<li>ID: ${flight.flight_id || "Bilinmiyor"} - ${flight.ozet}</li>`).join("");
         let obiletFlights = data.filter(flight => flight.kaynak === "Obilet")
-            .map(flight => `<li>${flight.havayolu} - ${flight.fiyat} - ${flight.kalkış_saati}</li>`).join("");
+            .map(flight => `<li>ID: ${flight.flight_id || "Bilinmiyor"} - ${flight.havayolu} - ${flight.fiyat} - ${flight.kalkış_saati}</li>`).join("");
         let turnaFlights = data.filter(flight => flight.kaynak === "Turna")
-            .map(flight => `<li>${flight.havayolu} - ${flight.fiyat} - ${flight.kalkış_saati}</li>`).join("");
+            .map(flight => `<li>${flight.ozet}</li>`).join("");
         flightResults.innerHTML = `
             <h3>Enuygun Uçuşları</h3>
             <ul>${enuygunFlights || "<p>Hiç uçuş bulunamadı.</p>"}</ul>
