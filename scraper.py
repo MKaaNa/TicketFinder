@@ -4,8 +4,23 @@ from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeo
 logging.basicConfig(level=logging.INFO)
 
 
+def format_date_for_enuygun(date_str):
+    # date_str "2025-02-28" formatında geliyorsa, "28.02.2025" formatına çevirir.
+    try:
+        parts = date_str.split('-')
+        if len(parts) == 3:
+            return f"{parts[2]}.{parts[1]}.{parts[0]}"
+        return date_str
+    except Exception:
+        return date_str
+
+
 def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih):
-    url = f"https://www.enuygun.com/ucak-bileti/arama/{kalkis}-{varis}-{kalkis_kodu}-{varis_kodu}/?gidis={tarih}&yetiskin=1&sinif=ekonomi"
+    # Tarihi doğru formatta eklemek için
+    gidis_tarih = format_date_for_enuygun(tarih)
+    url = (f"https://www.enuygun.com/ucak-bileti/arama/"
+           f"{kalkis}-{varis}-{kalkis_kodu}-{varis_kodu}/"
+           f"?gidis={gidis_tarih}&yetiskin=1&sinif=ekonomi&trip=domestic&geotrip=domestic&market=tr&language=tr")
     flights = []
     try:
         with sync_playwright() as p:
@@ -15,7 +30,6 @@ def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih
             page.goto(url, timeout=60000)
             logging.info(f"✅ Enuygun sayfası açıldı: {url}")
 
-            # Uçuş kartları, artık ".flight-item" sınıfına sahip
             page.wait_for_selector(".flight-item", timeout=60000)
             cards = page.query_selector_all(".flight-item")
             if not cards:
@@ -25,28 +39,26 @@ def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih
             for card in cards:
                 try:
                     flight_id = card.get_attribute("data-flight-id")
+                    request_id = card.get_attribute("data-request-id")
 
-                    # Özet bilgiler .flight-summary container'ı altında
                     summary_wrapper = card.query_selector(".flight-summary")
                     airline = promo = departure_time = price = None
                     if summary_wrapper:
                         airline_elem = summary_wrapper.query_selector(".flight-summary-airline")
                         promo_elem = summary_wrapper.query_selector(".flight-summary-promo")
                         time_elem = summary_wrapper.query_selector(".flight-summary-time")
-                        price_elem = summary_wrapper.query_selector(".flight-summary-price")
+                        price_elem = summary_wrapper.query_selector(".flight-summary-price .summary-average-price")
                         airline = airline_elem.inner_text().strip() if airline_elem else None
                         promo = promo_elem.inner_text().strip() if promo_elem else None
                         departure_time = time_elem.inner_text().strip() if time_elem else None
-                        price = price_elem.inner_text().strip() if price_elem else None
+                        price = price_elem.get_attribute("data-price") if price_elem else None
 
-                    # Ek uçuş detayları:
+                    # Eğer uçuş kartında origin/destination bilgisi yoksa, form verileri kullanılır.
                     origin_elem = card.query_selector(".segment-airport-origin")
-                    origin = origin_elem.inner_text().strip() if origin_elem else None
-
+                    origin = origin_elem.inner_text().strip() if origin_elem else kalkis
                     destination_elem = card.query_selector(".segment-airport-destination")
                     destination = None
                     if destination_elem:
-                        # Örneğin; destination bilgisini title attribute'ü ile almak
                         dest_name_elem = destination_elem.query_selector(".combineAirportName")
                         if dest_name_elem:
                             destination = dest_name_elem.get_attribute("title")
@@ -54,6 +66,8 @@ def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih
                                 destination = destination.strip()
                         if not destination:
                             destination = destination_elem.inner_text().strip()
+                    if not destination:
+                        destination = varis
 
                     terminal_elem = card.query_selector(".segment-airport-terminal")
                     terminal = terminal_elem.inner_text().strip() if terminal_elem else None
@@ -67,6 +81,7 @@ def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih
                     flights.append({
                         "kaynak": "Enuygun",
                         "flight_id": flight_id,
+                        "request_id": request_id,
                         "airline": airline,
                         "promo": promo,
                         "departure_time": departure_time,
@@ -86,9 +101,12 @@ def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih
         logging.error(f"❌ Enuygun'dan veri çekerken hata oluştu: {e}")
     return flights
 
-
-def get_flights_obilet_playwright(kalkis, varis, tarih):
-    url = f"https://www.obilet.com/ucuslar/{kalkis}_4-{varis}_18/{tarih}/1a/economy/all"
+def get_flights_turna_oneway_playwright(kalkis, varis, tarih):
+    """
+    Turna.com için tek yön uçuş verilerini çeker.
+    Örnek URL: https://www.turna.com/ucak-bileti/{kalkis}-{varis}/{tarih}
+    """
+    url = f"https://www.turna.com/ucak-bileti/{kalkis}-{varis}/{tarih}"
     flights = []
     try:
         with sync_playwright() as p:
@@ -96,116 +114,60 @@ def get_flights_obilet_playwright(kalkis, varis, tarih):
             context = browser.new_context(ignore_https_errors=True)
             page = context.new_page()
             page.goto(url, timeout=60000)
-            logging.info(f"✅ Obilet sayfası açıldı: {url}")
-            # Obilet için uçuş kartları: "#outbound-journeys li.item.journey"
-            page.wait_for_selector("#outbound-journeys li.item.journey", timeout=60000)
-            cards = page.query_selector_all("#outbound-journeys li.item.journey")
+            logging.info(f"✅ Turna tek yön sayfası açıldı: {url}")
+
+            page.wait_for_selector(".flight-card-wrapper__item", timeout=60000)
+            cards = page.query_selector_all(".flight-card-wrapper__item")
             if not cards:
-                logging.error("❌ Obilet'te uçuş bilgileri bulunamadı!")
+                logging.error("❌ Turna tek yön uçuşları bulunamadı!")
                 return []
-            logging.info(f"✅ {len(cards)} uçuş bulundu.")
+            logging.info(f"✅ {len(cards)} tek yön uçuş bulundu (Turna).")
             for card in cards:
                 try:
-                    flight_id = card.get_attribute("data-id")
-                    airline_elem = card.query_selector("div.airlines.col")
-                    price_elem = card.query_selector("div.price.col")
-                    time_elem = card.query_selector("div.time.col.row div.left.col")
+                    # Flight ID: Kartın id attribute'si ya da benzersiz bir placeholder
+                    flight_id = card.get_attribute("id")
+                    if not flight_id:
+                        flight_id = "turna-" + str(hash(card.inner_text()))
 
-                    airline = airline_elem.inner_text().strip() if airline_elem else None
-                    price = price_elem.inner_text().strip() if price_elem else None
-                    departure_time = time_elem.inner_text().strip() if time_elem else None
-
-                    flights.append({
-                        "kaynak": "Obilet",
-                        "flight_id": flight_id,
-                        "airline": airline,
-                        "price": price,
-                        "departure_time": departure_time
-                    })
-                except Exception as e:
-                    logging.warning(f"⚠️ Obilet uçuş bilgisi alınırken hata: {e}")
-            browser.close()
-    except PlaywrightTimeoutError as e:
-        logging.error(f"❌ Obilet sayfası zaman aşımına uğradı: {e}")
-    except Exception as e:
-        logging.error(f"❌ Obilet'ten veri çekerken hata oluştu: {e}")
-    return flights
-
-
-def get_flights_turna_playwright(kalkis, varis, tarih):
-    """
-    Turna.com'dan uçuş verilerini çeker.
-    URL örneği:
-      https://www.turna.com/ucak-bileti/{kalkis}-{varis}/{tarih}/{tarih}
-    """
-    url = f"https://www.turna.com/ucak-bileti/{kalkis}-{varis}/{tarih}/{tarih}"
-    flights = []
-    try:
-        from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-        import logging
-        logging.info(f"✅ Turna sayfası açılıyor: {url}")
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(ignore_https_errors=True)
-            page = context.new_page()
-            page.goto(url, timeout=60000)
-            # Uçuş kartlarını tanımak için container selector'ü
-            page.wait_for_selector("div.flight-card-wrapper__container", timeout=60000)
-            cards = page.query_selector_all("div.flight-card-wrapper__container")
-            if not cards:
-                logging.error("❌ Turna'da uçuş bilgileri bulunamadı!")
-                return []
-            logging.info(f"✅ {len(cards)} uçuş bulundu (Turna).")
-            for card in cards:
-                try:
-                    # Airline: Uçuş kartının üst kısmındaki ".airline-name" elementi
                     airline_elem = card.query_selector(".airline-name")
                     airline = airline_elem.inner_text().strip() if airline_elem else None
 
-                    # Rota: ".origin-destination" elementinde yer alıyor
-                    route_elem = card.query_selector(".origin-destination")
-                    departure_code = None
-                    arrival_code = None
-                    if route_elem:
-                        dep_elem = route_elem.query_selector("span.dep")
-                        arr_elem = route_elem.query_selector("span.arr")
-                        departure_code = dep_elem.inner_text().strip() if dep_elem else None
-                        arrival_code = arr_elem.inner_text().strip() if arr_elem else None
+                    origin_elem = card.query_selector("span.origin")
+                    destination_elem = card.query_selector("span.destination")
+                    origin = origin_elem.inner_text().strip() if origin_elem else None
+                    destination = destination_elem.inner_text().strip() if destination_elem else None
+                    if not origin or not destination:
+                        origin = kalkis
+                        destination = varis
 
-                    # Saatler: ".departure-date" ve ".arrival-date"
-                    dep_time_elem = card.query_selector(".departure-date")
-                    arr_time_elem = card.query_selector(".arrival-date")
-                    departure_time = dep_time_elem.inner_text().strip() if dep_time_elem else None
-                    arrival_time = arr_time_elem.inner_text().strip() if arr_time_elem else None
+                    dep_elem = card.query_selector(".departure-date")
+                    arr_elem = card.query_selector(".arrival-date")
+                    departure_time = dep_elem.inner_text().strip() if dep_elem else None
+                    arrival_time = arr_elem.inner_text().strip() if arr_elem else None
 
-                    # Süre: Eğer ilgili attribute varsa; yoksa None
-                    info_elem = card.query_selector(".flight-dates.duration")
-                    duration = info_elem.get_attribute("duration") if info_elem else None
+                    duration_elem = card.query_selector(".duration")
+                    duration = duration_elem.inner_text().strip() if duration_elem else None
 
-                    # Fiyat: ".price .money-val" elementinden
-                    price_elem = card.query_selector(".price .money-val")
+                    price_elem = card.query_selector(".money-val")
                     price = price_elem.inner_text().strip() if price_elem else None
-
-                    # Promosyon: ".promotion" elementinden (görünürse)
-                    promo_elem = card.query_selector(".promotion")
-                    promo = promo_elem.inner_text().strip() if promo_elem and promo_elem.is_visible() else None
 
                     flights.append({
                         "kaynak": "Turna",
+                        "flight_id": flight_id,
                         "airline": airline,
-                        "departure_code": departure_code,
-                        "arrival_code": arrival_code,
+                        "origin": origin,
+                        "destination": destination,
                         "departure_time": departure_time,
                         "arrival_time": arrival_time,
                         "duration": duration,
                         "price": price,
-                        "promo": promo
+                        "tripType": "oneway"
                     })
                 except Exception as e:
-                    logging.warning(f"⚠️ Turna uçuş bilgisi alınırken hata: {e}")
+                    logging.warning(f"⚠️ Turna tek yön uçuş bilgisi alınırken hata: {e}")
             browser.close()
     except PlaywrightTimeoutError as e:
-        logging.error(f"❌ Turna sayfası zaman aşımına uğradı: {e}")
+        logging.error(f"❌ Turna tek yön sayfası zaman aşımına uğradı: {e}")
     except Exception as e:
-        logging.error(f"❌ Turna.com'dan veri çekerken hata oluştu: {e}")
+        logging.error(f"❌ Turna tek yön uçuş verisi çekilirken hata: {e}")
     return flights
