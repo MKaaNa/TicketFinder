@@ -23,7 +23,7 @@ def flights():
     kalkis = request.args.get("kalkis", "ankara-esenboga-havalimani")
     varis = request.args.get("varis", "istanbul-sabiha-gokcen-havalimani")
     kalkis_kodu = request.args.get("kalkis_kodu", "esb")
-    varis_kodu = request.args.get("varis_kodu", "saw")
+    varis_kodu = request.args.get("varis_kodu", "ista")
     tarih = request.args.get("tarih", "2025-02-28")
 
     logging.info(f"🔍 Arama: {kalkis} ({kalkis_kodu}) → {varis} ({varis_kodu}) | Tarih: {tarih}")
@@ -31,7 +31,7 @@ def flights():
     try:
         enuygun = get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih)
         turna = get_flights_turna_oneway_playwright(kalkis, varis, tarih)
-        # Sadece Enuygun ve Turna verileri döndürülüyor
+        # Sadece Enuygun ve Turna verileri döndürülüyor.
         all_flights = enuygun + turna
         return jsonify(all_flights)
     except Exception as e:
@@ -55,7 +55,7 @@ def purchase():
             return redirect(f"{baseUrl}&request_id=default")
     elif source == "Turna":
         if flight_id:
-            return redirect(f"https://www.turna.com/ucak-bileti/rezervasyon/?flight_id={quote(flight_id)}")
+            return redirect(f"https://www.turna.com/ucak-bileti/rezervasyon/{quote(flight_id)}")
         else:
             return redirect("https://www.turna.com/ucak-bileti/rezervasyon/")
     else:

@@ -1,11 +1,9 @@
 document.getElementById("fetchFlights").addEventListener("click", async function() {
   const loader = document.getElementById("loader");
   const flightResults = document.getElementById("flightResults");
-  const turnaOnewaySection = document.getElementById("turnaOnewaySection");
 
   loader.style.display = "block";
   flightResults.innerHTML = "";
-  turnaOnewaySection.innerHTML = "";
 
   // Kullanıcının seçimlerini al
   const originSelect = document.getElementById("originSelect");
@@ -28,11 +26,12 @@ document.getElementById("fetchFlights").addEventListener("click", async function
       return;
     }
 
+    let html = "";
+
     // Enuygun uçuşlarını listele
     let enuygunFlights = data.filter(flight => flight.kaynak === "Enuygun");
-    let enuygunHtml = "";
     if (enuygunFlights.length > 0) {
-      enuygunHtml += `
+      html += `
         <h3>Enuygun Uçuşları</h3>
         <table>
           <thead>
@@ -51,31 +50,31 @@ document.getElementById("fetchFlights").addEventListener("click", async function
         let route = (flight.origin && flight.destination)
                     ? (flight.origin + " - " + flight.destination)
                     : (originSelect.options[originSelect.selectedIndex].text + " - " + destinationSelect.options[destinationSelect.selectedIndex].text);
-        enuygunHtml += `
+        html += `
           <tr>
             <td>${flight.flight_id || "Bilinmiyor"}</td>
             <td>${flight.airline || "Bilinmiyor"}</td>
             <td>${route}</td>
             <td>${flight.departure_time || "Bilinmiyor"}</td>
             <td>${flight.price || "Bilinmiyor"}</td>
-            <td><button class="buy-btn" onclick="buyTicket('${flight.flight_id}', 'Enuygun', '${flight.request_id || ''}')">Satın Al</button></td>
+            <td>
+              <button class="buy-btn" onclick="buyTicketEnuygun('${flight.flight_id}', '${flight.request_id || ''}')">Satın Al</button>
+            </td>
           </tr>
         `;
       });
-      enuygunHtml += `
+      html += `
           </tbody>
         </table>
       `;
-      flightResults.innerHTML += enuygunHtml;
     } else {
-      flightResults.innerHTML += "<h3>Enuygun Uçuşları</h3><p>Hiç uçuş bulunamadı.</p>";
+      html += "<h3>Enuygun Uçuşları</h3><p>Hiç uçuş bulunamadı.</p>";
     }
 
-    // Turna tek yön uçuşlarını listele
-    let turnaOneWay = data.filter(flight => flight.kaynak === "Turna" && flight.tripType === "oneway");
-    let turnaHtml = "";
-    if (turnaOneWay.length > 0) {
-      turnaHtml += `
+    // Turna uçuşlarını listele (tek yön)
+    let turnaFlights = data.filter(flight => flight.kaynak === "Turna" && flight.tripType === "oneway");
+    if (turnaFlights.length > 0) {
+      html += `
         <h3>Turna Tek Yön Uçuşları</h3>
         <table>
           <thead>
@@ -92,11 +91,11 @@ document.getElementById("fetchFlights").addEventListener("click", async function
           </thead>
           <tbody>
       `;
-      turnaOneWay.forEach(flight => {
+      turnaFlights.forEach(flight => {
         let route = (flight.origin && flight.destination)
                     ? (flight.origin + " - " + flight.destination)
                     : (originSelect.options[originSelect.selectedIndex].text + " - " + destinationSelect.options[destinationSelect.selectedIndex].text);
-        turnaHtml += `
+        html += `
           <tr>
             <td>${flight.flight_id || "Bilinmiyor"}</td>
             <td>${flight.airline || "Bilinmiyor"}</td>
@@ -105,19 +104,21 @@ document.getElementById("fetchFlights").addEventListener("click", async function
             <td>${flight.arrival_time || "Bilinmiyor"}</td>
             <td>${flight.duration || "Bilinmiyor"}</td>
             <td>${flight.price || "Bilinmiyor"}</td>
-            <td><button class="buy-btn" onclick="buyTicket('${flight.flight_id}', 'Turna')">Satın Al</button></td>
+            <td>
+              <button class="buy-btn" onclick="buyTicketTurna('${flight.flight_id}')">Satın Al</button>
+            </td>
           </tr>
         `;
       });
-      turnaHtml += `
+      html += `
           </tbody>
         </table>
       `;
-      turnaOnewaySection.innerHTML = turnaHtml;
     } else {
-      turnaOnewaySection.innerHTML = "<h3>Turna Tek Yön Uçuşları</h3><p>Hiç uçuş bulunamadı.</p>";
+      html += "<h3>Turna Tek Yön Uçuşları</h3><p>Hiç uçuş bulunamadı.</p>";
     }
 
+    flightResults.innerHTML = html;
   } catch (error) {
     console.error("Hata:", error);
     flightResults.innerHTML = "<p>Bir hata oluştu. Lütfen tekrar deneyin.</p>";
@@ -126,24 +127,25 @@ document.getElementById("fetchFlights").addEventListener("click", async function
   }
 });
 
-// Satın al butonuna tıklandığında, ilgili uçuşun kendi rezervasyon sayfasına yönlendir.
-function buyTicket(flightId, source, requestId) {
-  if (source === "Enuygun") {
-    let baseUrl = "https://www.enuygun.com/ucak-bileti/rezervasyon/?trip=domestic&geotrip=domestic&is_lc=0&route_type=one-way";
-    if (flightId) {
-      if (requestId && requestId.trim() !== "") {
-        window.location.href = `${baseUrl}&request_id=${encodeURIComponent(requestId)}&flight_id=${encodeURIComponent(flightId)}`;
-      } else {
-        window.location.href = `${baseUrl}&flight_id=${encodeURIComponent(flightId)}`;
-      }
+// Enuygun için satın alma fonksiyonu
+function buyTicketEnuygun(flightId, requestId) {
+  const baseUrl = "https://www.enuygun.com/ucak-bileti/rezervasyon/?trip=domestic&geotrip=domestic&is_lc=0&route_type=one-way";
+  if (flightId) {
+    if (requestId && requestId.trim() !== "") {
+      window.location.href = `${baseUrl}&request_id=${encodeURIComponent(requestId)}&flight_id=${encodeURIComponent(flightId)}`;
     } else {
-      window.location.href = `${baseUrl}&request_id=default`;
+      window.location.href = `${baseUrl}&flight_id=${encodeURIComponent(flightId)}`;
     }
-  } else if (source === "Turna") {
-    if (flightId) {
-      window.location.href = `https://www.turna.com/ucak-bileti/rezervasyon/${encodeURIComponent(flightId)}`;
-    } else {
-      window.location.href = "https://www.turna.com/ucak-bileti/rezervasyon/";
-    }
+  } else {
+    window.location.href = `${baseUrl}&request_id=default`;
+  }
+}
+
+// Turna için satın alma fonksiyonu
+function buyTicketTurna(flightId) {
+  if (flightId) {
+    window.location.href = `https://www.turna.com/ucak-bileti/rezervasyon/${encodeURIComponent(flightId)}`;
+  } else {
+    window.location.href = "https://www.turna.com/ucak-bileti/rezervasyon/";
   }
 }

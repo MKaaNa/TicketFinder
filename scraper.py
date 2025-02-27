@@ -4,23 +4,16 @@ from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeo
 logging.basicConfig(level=logging.INFO)
 
 
-def format_date_for_enuygun(date_str):
-    # date_str "2025-02-28" formatında geliyorsa, "28.02.2025" formatına çevirir.
-    try:
-        parts = date_str.split('-')
-        if len(parts) == 3:
-            return f"{parts[2]}.{parts[1]}.{parts[0]}"
-        return date_str
-    except Exception:
-        return date_str
-
-
 def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih):
-    # Tarihi doğru formatta eklemek için
-    gidis_tarih = format_date_for_enuygun(tarih)
+    """
+    Enuygun uçuş arama sayfasından uçuş kartlarını çekip,
+    flight_id, havayolu, kalkış zamanı, fiyat gibi bilgileri döndürür.
+    Örnek URL:
+    https://www.enuygun.com/ucak-bileti/arama/ankara-esenboga-havalimani-istanbul-sabiha-gokcen-havalimani-esb-ista/?gidis=28.02.2025&yetiskin=1&sinif=ekonomi&trip=domestic&geotrip=domestic&market=tr&language=tr
+    """
     url = (f"https://www.enuygun.com/ucak-bileti/arama/"
            f"{kalkis}-{varis}-{kalkis_kodu}-{varis_kodu}/"
-           f"?gidis={gidis_tarih}&yetiskin=1&sinif=ekonomi&trip=domestic&geotrip=domestic&market=tr&language=tr")
+           f"?gidis={tarih}&yetiskin=1&sinif=ekonomi&trip=domestic&geotrip=domestic&market=tr&language=tr")
     flights = []
     try:
         with sync_playwright() as p:
@@ -30,6 +23,7 @@ def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih
             page.goto(url, timeout=60000)
             logging.info(f"✅ Enuygun sayfası açıldı: {url}")
 
+            # Uçuş kartları, ".flight-item" sınıfına sahip
             page.wait_for_selector(".flight-item", timeout=60000)
             cards = page.query_selector_all(".flight-item")
             if not cards:
@@ -47,15 +41,17 @@ def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih
                         airline_elem = summary_wrapper.query_selector(".flight-summary-airline")
                         promo_elem = summary_wrapper.query_selector(".flight-summary-promo")
                         time_elem = summary_wrapper.query_selector(".flight-summary-time")
+                        # Fiyat: summary-average-price elementinin data-price attribute'ü
                         price_elem = summary_wrapper.query_selector(".flight-summary-price .summary-average-price")
                         airline = airline_elem.inner_text().strip() if airline_elem else None
                         promo = promo_elem.inner_text().strip() if promo_elem else None
                         departure_time = time_elem.inner_text().strip() if time_elem else None
                         price = price_elem.get_attribute("data-price") if price_elem else None
 
-                    # Eğer uçuş kartında origin/destination bilgisi yoksa, form verileri kullanılır.
+                    # Ek detaylar
                     origin_elem = card.query_selector(".segment-airport-origin")
                     origin = origin_elem.inner_text().strip() if origin_elem else kalkis
+
                     destination_elem = card.query_selector(".segment-airport-destination")
                     destination = None
                     if destination_elem:
@@ -101,6 +97,7 @@ def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih
         logging.error(f"❌ Enuygun'dan veri çekerken hata oluştu: {e}")
     return flights
 
+
 def get_flights_turna_oneway_playwright(kalkis, varis, tarih):
     """
     Turna.com için tek yön uçuş verilerini çeker.
@@ -124,7 +121,6 @@ def get_flights_turna_oneway_playwright(kalkis, varis, tarih):
             logging.info(f"✅ {len(cards)} tek yön uçuş bulundu (Turna).")
             for card in cards:
                 try:
-                    # Flight ID: Kartın id attribute'si ya da benzersiz bir placeholder
                     flight_id = card.get_attribute("id")
                     if not flight_id:
                         flight_id = "turna-" + str(hash(card.inner_text()))
@@ -134,11 +130,8 @@ def get_flights_turna_oneway_playwright(kalkis, varis, tarih):
 
                     origin_elem = card.query_selector("span.origin")
                     destination_elem = card.query_selector("span.destination")
-                    origin = origin_elem.inner_text().strip() if origin_elem else None
-                    destination = destination_elem.inner_text().strip() if destination_elem else None
-                    if not origin or not destination:
-                        origin = kalkis
-                        destination = varis
+                    origin = origin_elem.inner_text().strip() if origin_elem else kalkis
+                    destination = destination_elem.inner_text().strip() if destination_elem else varis
 
                     dep_elem = card.query_selector(".departure-date")
                     arr_elem = card.query_selector(".arrival-date")
