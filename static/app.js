@@ -2,7 +2,8 @@ document.getElementById("fetchFlights").addEventListener("click", async function
   const loader = document.getElementById("loader");
   const flightResults = document.getElementById("flightResults");
 
-  loader.style.display = "block";
+  // Loader görünür hale getiriliyor
+  loader.classList.remove("d-none");
   flightResults.innerHTML = "";
 
   const originSelect = document.getElementById("originSelect");
@@ -130,7 +131,7 @@ document.getElementById("fetchFlights").addEventListener("click", async function
     console.error("Hata:", error);
     flightResults.innerHTML = "<p>Bir hata oluştu. Lütfen tekrar deneyin.</p>";
   } finally {
-    loader.style.display = "none";
+    loader.classList.add("d-none");
   }
 });
 
@@ -175,11 +176,12 @@ function purchaseTurna(button) {
     return;
   }
 
+  // Satın alma URL'si buton attribute'unda tam olarak hazır bulunuyor
   const purchaseUrl = button.getAttribute("data-purchase-url");
-  const flightId = button.getAttribute("data-flight-id");
   if (purchaseUrl && purchaseUrl.trim() !== "") {
     alert("Satın alma işlemi başlatılıyor. Lütfen bekleyin...");
-    window.open(`${purchaseUrl}?flight_id=${encodeURIComponent(flightId)}`, '_blank');
+    // Artık URL'ye ekstra flight_id eklenmiyor
+    window.open(purchaseUrl, '_blank');
   } else {
     alert("Satın alma linki bulunamadı.");
   }

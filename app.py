@@ -15,11 +15,9 @@ app.config["DEBUG"] = True
 
 limiter = Limiter(get_remote_address, app=app, default_limits=["2 per second"])
 
-
 @app.route("/")
 def home():
     return render_template("index.html")
-
 
 @app.route("/api/flights", methods=["GET"])
 def flights():
@@ -40,7 +38,6 @@ def flights():
         logging.error(f"Uçuş verileri alınırken hata oluştu: {e}")
         return jsonify({"error": "Uçuş verileri alınırken hata oluştu", "details": str(e)}), 500
 
-
 @app.route("/purchase/enuygun", methods=["GET"])
 def purchase_enuygun():
     try:
@@ -56,7 +53,6 @@ def purchase_enuygun():
         logging.error(f"❌ Satın alma hatası: {e}")
         return jsonify({"error": "Satın alma işlemi sırasında bir hata oluştu."}), 500
 
-
 @app.route("/purchase/turna", methods=["GET"])
 def purchase_turna():
     try:
@@ -67,7 +63,6 @@ def purchase_turna():
     except Exception as e:
         logging.error(f"❌ Turna satın alma hatası: {e}")
         return render_template("error.html", message="Satın alma işlemi başarısız oldu.")
-
 
 if __name__ == "__main__":
     app.run()
