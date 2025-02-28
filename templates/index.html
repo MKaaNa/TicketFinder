@@ -2,97 +2,96 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Uçuş Bilgileri</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uçuş Arama Motoru</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* Spinner */
+    body {
+      background-color: #f8f9fa;
+    }
+    .navbar {
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
     #loader {
-      border: 16px solid #f3f3f3;
-      border-top: 16px solid #3498db;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
       border-radius: 50%;
-      width: 80px;
-      height: 80px;
-      animation: spin 2s linear infinite;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
       display: none;
-      z-index: 1000;
+      z-index: 1050;
     }
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    /* Form stilleri */
-    .form-group {
-      margin-bottom: 15px;
+    .flight-card {
+      background: white;
+      border: none;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
     }
-    label {
-      display: inline-block;
-      width: 150px;
+    .flight-card:hover {
+      transform: translateY(-3px);
     }
-    select, input[type="date"] {
-      padding: 5px;
-      font-size: 1em;
-    }
-    /* Tablo stilleri */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #3498db;
-      color: white;
-    }
-    button.buy-btn {
+    .price-badge {
+      font-size: 1.2rem;
       background-color: #28a745;
       color: white;
-      border: none;
-      padding: 5px 10px;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    button.buy-btn:hover {
-      background-color: #218838;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
     }
   </style>
 </head>
 <body>
-  <h1>Uçuş Bilgileri</h1>
+  <nav class="navbar navbar-dark bg-primary mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="/">✈️ Uçuş Arama Motoru</a>
+    </div>
+  </nav>
 
-  <!-- Kullanıcı seçim formu -->
-  <div>
-    <div class="form-group">
-      <label for="originSelect">Nereden:</label>
-      <select id="originSelect">
-        <option value="ankara-esenboga-havalimani" data-code="esb">Ankara Esenboğa Havalimanı</option>
-      </select>
+  <div class="container">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Uçuş Ara</h5>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="originSelect" class="form-label">Nereden</label>
+            <select class="form-select" id="originSelect">
+              <option value="ankara-esenboga-havalimani" data-code="esb">Ankara Esenboğa Havalimanı</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="destinationSelect" class="form-label">Nereye</label>
+            <select class="form-select" id="destinationSelect">
+              <option value="istanbul-sabiha-gokcen-havalimani" data-code="ista">İstanbul Sabiha Gökçen Havalimanı</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="travelDate" class="form-label">Tarih</label>
+            <input type="date" class="form-control" id="travelDate" value="2025-02-28">
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button class="btn btn-primary w-100" id="fetchFlights">
+              <span class="d-none spinner-border spinner-border-sm" role="status"></span>
+              Uçuşları Göster
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="destinationSelect">Nereye:</label>
-      <!-- Turna.com URL'sinde "istanbul-sabiha-gokcen-havalimani" kullanılacak -->
-      <select id="destinationSelect">
-        <option value="istanbul-sabiha-gokcen-havalimani" data-code="ista">İstanbul Sabiha Gökçen Havalimanı</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="travelDate">Tarih:</label>
-      <input type="date" id="travelDate" value="2025-02-28">
-    </div>
-    <button id="fetchFlights">Uçuşları Getir</button>
+
+    <div id="flightResults" class="row g-4"></div>
+    <div id="loader" class="position-fixed top-50 start-50 translate-middle"></div>
   </div>
 
-  <!-- Enuygun ve Turna uçuş sonuçları -->
-  <div id="flightResults"></div>
-
-  <div id="loader"></div>
-
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

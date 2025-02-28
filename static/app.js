@@ -5,7 +5,6 @@ document.getElementById("fetchFlights").addEventListener("click", async function
   loader.style.display = "block";
   flightResults.innerHTML = "";
 
-  // Kullanıcının seçimlerini al
   const originSelect = document.getElementById("originSelect");
   const destinationSelect = document.getElementById("destinationSelect");
   const travelDate = document.getElementById("travelDate").value;
@@ -15,7 +14,6 @@ document.getElementById("fetchFlights").addEventListener("click", async function
   const varis = destinationSelect.value;
   const varis_kodu = destinationSelect.options[destinationSelect.selectedIndex].dataset.code || "";
 
-  // API URL'si: Enuygun ve Turna uçuş verilerini getirir.
   const apiUrl = `/api/flights?kalkis=${encodeURIComponent(kalkis)}&varis=${encodeURIComponent(varis)}&kalkis_kodu=${encodeURIComponent(kalkis_kodu)}&varis_kodu=${encodeURIComponent(varis_kodu)}&tarih=${encodeURIComponent(travelDate)}`;
 
   try {
@@ -28,76 +26,78 @@ document.getElementById("fetchFlights").addEventListener("click", async function
 
     let html = "";
 
-    // Enuygun uçuşlarını listele
+    // Enuygun uçuşları
     let enuygunFlights = data.filter(flight => flight.kaynak === "Enuygun");
     if (enuygunFlights.length > 0) {
       html += `
         <h3>Enuygun Uçuşları</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Uçuş ID</th>
-              <th>Havayolu</th>
-              <th>Rota</th>
-              <th>Kalkış</th>
-              <th>Fiyat</th>
-              <th>İşlem</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div class="col-12">
+          <table class="table table-hover">
+            <thead class="table-primary">
+              <tr>
+                <th>Havayolu</th>
+                <th>Rota</th>
+                <th>Kalkış</th>
+                <th>Fiyat</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
       `;
       enuygunFlights.forEach(flight => {
-        let route = (flight.origin && flight.destination)
-                    ? (flight.origin + " - " + flight.destination)
-                    : (originSelect.options[originSelect.selectedIndex].text + " - " + destinationSelect.options[destinationSelect.selectedIndex].text);
+        let route = `${originSelect.options[originSelect.selectedIndex].text} → ${destinationSelect.options[destinationSelect.selectedIndex].text}`;
         html += `
-          <tr>
-            <td>${flight.flight_id || "Bilinmiyor"}</td>
+          <tr class="flight-row" data-price="${flight.price}">
             <td>${flight.airline || "Bilinmiyor"}</td>
             <td>${route}</td>
             <td>${flight.departure_time || "Bilinmiyor"}</td>
             <td>${flight.price || "Bilinmiyor"}</td>
             <td>
-              <button class="buy-btn" onclick="buyTicketEnuygun('${flight.flight_id}', '${flight.request_id || ''}')">Satın Al</button>
+              <button class="buy-btn btn btn-success" 
+                      onclick="purchaseEnuygun(this)" 
+                      data-purchase-url="${flight.purchase_url || ''}"
+                      data-flight-id="${flight.flight_id || ''}"
+                      data-request-id="${flight.request_id || ''}"
+                      data-final-purchase-url="${flight.final_purchase_url || ''}">
+                Satın Al
+              </button>
             </td>
           </tr>
         `;
       });
       html += `
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       `;
     } else {
       html += "<h3>Enuygun Uçuşları</h3><p>Hiç uçuş bulunamadı.</p>";
     }
 
-    // Turna uçuşlarını listele (tek yön)
+    // Turna uçuşları
     let turnaFlights = data.filter(flight => flight.kaynak === "Turna" && flight.tripType === "oneway");
     if (turnaFlights.length > 0) {
       html += `
         <h3>Turna Tek Yön Uçuşları</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Uçuş ID</th>
-              <th>Havayolu</th>
-              <th>Rota</th>
-              <th>Kalkış</th>
-              <th>Varış</th>
-              <th>Süre</th>
-              <th>Fiyat</th>
-              <th>İşlem</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div class="col-12">
+          <table class="table table-hover">
+            <thead class="table-primary">
+              <tr>
+                <th>Havayolu</th>
+                <th>Rota</th>
+                <th>Kalkış</th>
+                <th>Varış</th>
+                <th>Süre</th>
+                <th>Fiyat</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
       `;
       turnaFlights.forEach(flight => {
-        let route = (flight.origin && flight.destination)
-                    ? (flight.origin + " - " + flight.destination)
-                    : (originSelect.options[originSelect.selectedIndex].text + " - " + destinationSelect.options[destinationSelect.selectedIndex].text);
+        let route = `${originSelect.options[originSelect.selectedIndex].text} → ${destinationSelect.options[destinationSelect.selectedIndex].text}`;
         html += `
-          <tr>
-            <td>${flight.flight_id || "Bilinmiyor"}</td>
+          <tr class="flight-row" data-price="${flight.price}">
             <td>${flight.airline || "Bilinmiyor"}</td>
             <td>${route}</td>
             <td>${flight.departure_time || "Bilinmiyor"}</td>
@@ -105,14 +105,21 @@ document.getElementById("fetchFlights").addEventListener("click", async function
             <td>${flight.duration || "Bilinmiyor"}</td>
             <td>${flight.price || "Bilinmiyor"}</td>
             <td>
-              <button class="buy-btn" onclick="buyTicketTurna('${flight.flight_id}')">Satın Al</button>
+              <button class="buy-btn btn btn-success" 
+                      onclick="purchaseTurna(this)" 
+                      data-purchase-url="${flight.purchase_url || ''}"
+                      data-flight-id="${flight.flight_id || ''}"
+                      data-final-purchase-url="${flight.final_purchase_url || ''}">
+                Satın Al
+              </button>
             </td>
           </tr>
         `;
       });
       html += `
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       `;
     } else {
       html += "<h3>Turna Tek Yön Uçuşları</h3><p>Hiç uçuş bulunamadı.</p>";
@@ -127,25 +134,53 @@ document.getElementById("fetchFlights").addEventListener("click", async function
   }
 });
 
-// Enuygun için satın alma fonksiyonu
-function buyTicketEnuygun(flightId, requestId) {
-  const baseUrl = "https://www.enuygun.com/ucak-bileti/rezervasyon/?trip=domestic&geotrip=domestic&is_lc=0&route_type=one-way";
-  if (flightId) {
-    if (requestId && requestId.trim() !== "") {
-      window.location.href = `${baseUrl}&request_id=${encodeURIComponent(requestId)}&flight_id=${encodeURIComponent(flightId)}`;
-    } else {
-      window.location.href = `${baseUrl}&flight_id=${encodeURIComponent(flightId)}`;
+async function purchaseEnuygun(button) {
+  const finalUrl = button.getAttribute("data-final-purchase-url");
+  if (finalUrl && finalUrl.trim() !== "") {
+    window.open(finalUrl, '_blank');
+    return;
+  }
+
+  const purchaseUrl = button.getAttribute("data-purchase-url");
+  const flightId = button.getAttribute("data-flight-id");
+  const requestId = button.getAttribute("data-request-id");
+
+  if (purchaseUrl && purchaseUrl.trim() !== "") {
+    alert("Satın alma işlemi başlatılıyor. Lütfen bekleyin...");
+    try {
+      const response = await fetch(`/purchase/enuygun?flight_id=${encodeURIComponent(flightId)}&request_id=${encodeURIComponent(requestId)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.final_url) {
+          window.open(data.final_url, '_blank');
+        } else {
+          alert("Satın alma işlemi başarısız oldu. Lütfen tekrar deneyin.");
+        }
+      } else {
+        alert("Satın alma işlemi sırasında bir hata oluştu.");
+      }
+    } catch (error) {
+      console.error("Hata:", error);
+      alert("Satın alma işlemi sırasında bir hata oluştu.");
     }
   } else {
-    window.location.href = `${baseUrl}&request_id=default`;
+    alert("Satın alma linki bulunamadı.");
   }
 }
 
-// Turna için satın alma fonksiyonu
-function buyTicketTurna(flightId) {
-  if (flightId) {
-    window.location.href = `https://www.turna.com/ucak-bileti/rezervasyon/${encodeURIComponent(flightId)}`;
+function purchaseTurna(button) {
+  const finalUrl = button.getAttribute("data-final-purchase-url");
+  if (finalUrl && finalUrl.trim() !== "") {
+    window.open(finalUrl, '_blank');
+    return;
+  }
+
+  const purchaseUrl = button.getAttribute("data-purchase-url");
+  const flightId = button.getAttribute("data-flight-id");
+  if (purchaseUrl && purchaseUrl.trim() !== "") {
+    alert("Satın alma işlemi başlatılıyor. Lütfen bekleyin...");
+    window.open(`${purchaseUrl}?flight_id=${encodeURIComponent(flightId)}`, '_blank');
   } else {
-    window.location.href = "https://www.turna.com/ucak-bileti/rezervasyon/";
+    alert("Satın alma linki bulunamadı.");
   }
 }
