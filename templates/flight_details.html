@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uçuş Detayları</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container mt-5">
+    <h2>Uçuş Detayları</h2>
+    <div id="flightDetails" class="card">
+      <div class="card-body">
+        <h5 class="card-title" id="airline"></h5>
+        <p class="card-text" id="route"></p>
+        <p class="card-text" id="departure_time"></p>
+        <p class="card-text" id="arrival_time"></p>
+        <p class="card-text" id="duration"></p>
+        <p class="card-text" id="price"></p>
+        <button class="btn btn-primary" id="purchaseButton">Satın Al</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const flight = JSON.parse(localStorage.getItem("selectedFlight"));
+      if (flight) {
+        document.getElementById("airline").innerText = flight.airline;
+        document.getElementById("route").innerText = `${flight.origin} → ${flight.destination}`;
+        document.getElementById("departure_time").innerText = `Kalkış: ${flight.departure_time}`;
+        document.getElementById("arrival_time").innerText = `Varış: ${flight.arrival_time}`;
+        document.getElementById("duration").innerText = `Süre: ${flight.duration}`;
+        document.getElementById("price").innerText = `Fiyat: ${flight.price}`;
+        document.getElementById("purchaseButton").onclick = async function () {
+          try {
+            const response = await fetch(flight.purchase_url);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.final_url) {
+                window.location.href = data.final_url;
+              } else {
+                alert("Satın alma işlemi başarısız oldu. Lütfen tekrar deneyin.");
+              }
+            } else {
+              alert("Satın alma işlemi sırasında bir hata oluştu.");
+            }
+          } catch (error) {
+            console.error("Hata:", error);
+            alert("Satın alma işlemi sırasında bir hata oluştu.");
+          }
+        };
+      }
+    });
+  </script>
+</body>
+
+</html>

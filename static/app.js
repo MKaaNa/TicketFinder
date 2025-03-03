@@ -2,7 +2,6 @@ document.getElementById("fetchFlights").addEventListener("click", async function
   const loader = document.getElementById("loader");
   const flightResults = document.getElementById("flightResults");
 
-  // Loader görünür hale getiriliyor
   loader.classList.remove("d-none");
   flightResults.innerHTML = "";
 
@@ -27,7 +26,6 @@ document.getElementById("fetchFlights").addEventListener("click", async function
 
     let html = "";
 
-    // Enuygun uçuşları
     let enuygunFlights = data.filter(flight => flight.kaynak === "Enuygun");
     if (enuygunFlights.length > 0) {
       html += `
@@ -48,7 +46,7 @@ document.getElementById("fetchFlights").addEventListener("click", async function
       enuygunFlights.forEach(flight => {
         let route = `${originSelect.options[originSelect.selectedIndex].text} → ${destinationSelect.options[destinationSelect.selectedIndex].text}`;
         html += `
-          <tr class="flight-row" data-price="${flight.price}">
+          <tr data-price="${flight.price}">
             <td>${flight.airline || "Bilinmiyor"}</td>
             <td>${route}</td>
             <td>${flight.departure_time || "Bilinmiyor"}</td>
@@ -75,7 +73,6 @@ document.getElementById("fetchFlights").addEventListener("click", async function
       html += "<h3>Enuygun Uçuşları</h3><p>Hiç uçuş bulunamadı.</p>";
     }
 
-    // Turna uçuşları
     let turnaFlights = data.filter(flight => flight.kaynak === "Turna" && flight.tripType === "oneway");
     if (turnaFlights.length > 0) {
       html += `
@@ -98,7 +95,7 @@ document.getElementById("fetchFlights").addEventListener("click", async function
       turnaFlights.forEach(flight => {
         let route = `${originSelect.options[originSelect.selectedIndex].text} → ${destinationSelect.options[destinationSelect.selectedIndex].text}`;
         html += `
-          <tr class="flight-row" data-price="${flight.price}">
+          <tr data-price="${flight.price}">
             <td>${flight.airline || "Bilinmiyor"}</td>
             <td>${route}</td>
             <td>${flight.departure_time || "Bilinmiyor"}</td>
@@ -141,11 +138,9 @@ async function purchaseEnuygun(button) {
     window.open(finalUrl, '_blank');
     return;
   }
-
   const purchaseUrl = button.getAttribute("data-purchase-url");
   const flightId = button.getAttribute("data-flight-id");
   const requestId = button.getAttribute("data-request-id");
-
   if (purchaseUrl && purchaseUrl.trim() !== "") {
     alert("Satın alma işlemi başlatılıyor. Lütfen bekleyin...");
     try {
@@ -175,12 +170,11 @@ function purchaseTurna(button) {
     window.open(finalUrl, '_blank');
     return;
   }
-
-  // Satın alma URL'si buton attribute'unda tam olarak hazır bulunuyor
   const purchaseUrl = button.getAttribute("data-purchase-url");
+  // Artık purchaseUrl scraper tarafından "flight_id" parametresiyle oluşturuluyor,
+  // bu yüzden ek bir query string eklemeye gerek yok.
   if (purchaseUrl && purchaseUrl.trim() !== "") {
     alert("Satın alma işlemi başlatılıyor. Lütfen bekleyin...");
-    // Artık URL'ye ekstra flight_id eklenmiyor
     window.open(purchaseUrl, '_blank');
   } else {
     alert("Satın alma linki bulunamadı.");

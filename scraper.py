@@ -116,10 +116,12 @@ def get_flights_enuygun_playwright(kalkis, varis, kalkis_kodu, varis_kodu, tarih
                                 price = price_elem.inner_text().strip()
                         else:
                             price = "Bilinmiyor"
-
                     origin = kalkis
                     destination = varis
-
+                    if not isinstance(flight_id, str):
+                        flight_id = flight_id.decode("utf-8")
+                    if not isinstance(request_id, str):
+                        request_id = request_id.decode("utf-8")
                     purchase_url = f"/purchase/enuygun?flight_id={quote(flight_id)}&request_id={quote(request_id)}"
 
                     flights.append({
@@ -171,6 +173,13 @@ def get_flights_turna_oneway_playwright(kalkis, varis, tarih):
             for card in cards:
                 try:
                     flight_id = extract_turna_flight_id(card)
+                    if not flight_id:
+                        logging.warning("⚠️ Turna flight_id boş bulundu, bu uçuş atlanıyor.")
+                        continue
+                    if not isinstance(flight_id, str):
+                        flight_id = flight_id.decode("utf-8")
+                    # Flight ID'nin başındaki "-" karakterini kaldırıyoruz.
+                    flight_id = flight_id.lstrip("-")
                     airline_elem = card.query_selector(".airline-name")
                     airline = airline_elem.inner_text().strip() if airline_elem else "Bilinmiyor"
                     origin_elem = card.query_selector("span.origin")
@@ -185,10 +194,8 @@ def get_flights_turna_oneway_playwright(kalkis, varis, tarih):
                     duration = duration_elem.inner_text().strip() if duration_elem else "Bilinmiyor"
                     price_elem = card.query_selector(".money-val")
                     price = price_elem.inner_text().strip() if price_elem else "Bilinmiyor"
-
                     base_purchase_url = "/purchase/turna"
                     purchase_url = f"{base_purchase_url}?flight_id={quote(flight_id)}"
-
                     flights.append({
                         "kaynak": "Turna",
                         "flight_id": flight_id,
@@ -253,6 +260,8 @@ def simulate_purchase_enuygun(flight_id, request_id):
 
 def simulate_purchase_turna(flight_id):
     try:
+        # Flight ID'nin başındaki "-" karakterini kaldırıyoruz.
+        flight_id = flight_id.lstrip("-")
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             context = browser.new_context(
@@ -273,3 +282,28 @@ def simulate_purchase_turna(flight_id):
     except Exception as e:
         logging.error(f"❌ Turna satın alma akışı sırasında hata: {e}")
         return purchase_url
+
+if __name__ == "__main__":
+    print("Enuygun uçuşları:")
+    try:
+        flights_enuygun = get_flights_enuygun_playwright(
+            "ankara-esenboga-havalimani",
+            "istanbul-sabiha-gokcen-havalimani",
+            "esb", "ista", "2025-03-03"
+        )
+        for flight in flights_enuygun:
+            print(flight)
+    except Exception as e:
+        print("Hata:", e)
+
+    print("\nTurna uçuşları:")
+    try:
+        flights_turna = get_flights_turna_oneway_playwright(
+            "ankara-esenboga-havalimani",
+            "istanbul-sabiha-gokcen-havalimani",
+            "2025-03-03"
+        )
+        for flight in flights_turna:
+            print(flight)
+    except Exception as e:
+        print("Hata:", e)

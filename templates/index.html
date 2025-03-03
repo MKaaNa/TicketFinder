@@ -66,6 +66,19 @@
     </div>
   </nav>
 
+  <table class="table table-hover table-striped">
+  <thead class="table-primary">
+    <tr>
+      <th class="sortable" data-sort="airline">Havayolu</th>
+      <th class="sortable" data-sort="route">Rota</th>
+      <th class="sortable" data-sort="departure_time">Kalkış</th>
+      <th class="sortable" data-sort="arrival_time">Varış</th>
+      <th class="sortable" data-sort="price">Fiyat</th>
+      <th>İşlem</th>
+    </tr>
+  </thead>
+  <tbody>
+
   <div class="container">
     <div class="card shadow-sm mb-4">
       <div class="card-body">
@@ -83,10 +96,27 @@
               <option value="istanbul-sabiha-gokcen-havalimani" data-code="ista">İstanbul Sabiha Gökçen Havalimanı</option>
             </select>
           </div>
-          <div class="col-md-3">
-            <label for="travelDate" class="form-label">Tarih</label>
-            <input type="date" class="form-control" id="travelDate" value="2025-02-28">
-          </div>
+          <!-- Tarih input kısmını aşağıdaki gibi güncelleyin -->
+<div class="col-md-3">
+  <label for="travelDate" class="form-label">Tarih</label>
+  <input type="date" class="form-control" id="travelDate">
+</div>
+
+<!-- Sayfa sonunda veya uygun bir yerde JavaScript ile güncelleme yapıyoruz -->
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Bugünün tarihini "YYYY-MM-DD" formatında oluşturuyoruz
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); // Ay 0-11 arası olduğu için +1
+    var yyyy = today.getFullYear();
+    var todayStr = yyyy + '-' + mm + '-' + dd;
+
+    var travelDateInput = document.getElementById("travelDate");
+    travelDateInput.value = todayStr;     // Varsayılan değer bugünün tarihi
+    travelDateInput.setAttribute("min", todayStr); // Geçmiş tarih seçilemesin diye min değeri bugünün tarihi
+  });
+</script>
           <div class="col-md-3 d-flex align-items-end">
             <button id="fetchFlights" class="btn btn-primary w-100">Uçuşları Getir</button>
           </div>
