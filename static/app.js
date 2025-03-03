@@ -176,6 +176,7 @@ function purchaseTurna(button) {
   if (purchaseUrl && purchaseUrl.trim() !== "") {
     alert("Satın alma işlemi başlatılıyor. Lütfen bekleyin...");
     window.open(purchaseUrl, '_blank');
+    window.close();
   } else {
     alert("Satın alma linki bulunamadı.");
   }

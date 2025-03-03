@@ -258,30 +258,24 @@ def simulate_purchase_enuygun(flight_id, request_id):
             return final_url
     return run_purchase()
 
+
 def simulate_purchase_turna(flight_id):
+    """
+    Returns the direct purchase URL for Turna flights without complex browser validation.
+    This simplifies the process and avoids navigation issues.
+    """
     try:
-        # Flight ID'nin başındaki "-" karakterini kaldırıyoruz.
-        flight_id = flight_id.lstrip("-")
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
-                ignore_https_errors=True,
-                user_agent=("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"),
-                viewport={"width": 1280, "height": 800}
-            )
-            page = context.new_page()
-            purchase_url = f"https://www.turna.com/ucak-bileti/rezervasyon/{quote(flight_id)}"
-            page.goto(purchase_url, timeout=60000)
-            logging.info(f"✅ Turna satın alma sayfası açıldı: {purchase_url}")
-            page.wait_for_load_state("networkidle", timeout=80000)
-            final_url = page.url
-            logging.info(f"✅ Turna son satın alma URL'si: {final_url}")
-            browser.close()
-            return final_url
+        # Ensure the flight_id is clean (no leading dash)
+        if flight_id.startswith("-"):
+            flight_id = flight_id[1:]
+
+        # Simply construct and return the reservation URL
+        return f"https://www.turna.com/ucak-bileti/rezervasyon/{flight_id}"
     except Exception as e:
-        logging.error(f"❌ Turna satın alma akışı sırasında hata: {e}")
-        return purchase_url
+        logging.error(f"❌ Turna URL oluşturma hatası: {str(e)}")
+        traceback.print_exc()
+        # Fallback to direct URL in case of any error
+        return f"https://www.turna.com/ucak-bileti/rezervasyon/{flight_id}"
 
 if __name__ == "__main__":
     print("Enuygun uçuşları:")
