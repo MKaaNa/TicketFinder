@@ -170,14 +170,24 @@ function purchaseTurna(button) {
     window.open(finalUrl, '_blank');
     return;
   }
-  const purchaseUrl = button.getAttribute("data-purchase-url");
-  // Artık purchaseUrl scraper tarafından "flight_id" parametresiyle oluşturuluyor,
-  // bu yüzden ek bir query string eklemeye gerek yok.
-  if (purchaseUrl && purchaseUrl.trim() !== "") {
+
+  const flightId = button.getAttribute("data-flight-id");
+
+  if (flightId && flightId.trim() !== "") {
     alert("Satın alma işlemi başlatılıyor. Lütfen bekleyin...");
-    window.open(purchaseUrl, '_blank');
-    window.close();
+
+    // Create the redirect URL to our backend
+    const redirectUrl = `/purchase/turna?flight_id=${encodeURIComponent(flightId)}`;
+
+    // Open in new tab without any fetch operations
+    const newTab = window.open(redirectUrl, '_blank');
+
+    // Focus on the new tab (optional)
+    if (newTab) {
+      newTab.focus();
+    }
   } else {
     alert("Satın alma linki bulunamadı.");
   }
 }
+
